@@ -33,22 +33,35 @@ const UnitTest unit_tests[] = {
 };
 
 void minunit_print_progress() {
+    UNUSED(run_minunit_test_fn_helpers);
     static const char progress[] = {'\\', '|', '/', '-'};
     static uint8_t progress_counter = 0;
     static uint32_t last_tick = 0;
     uint32_t current_tick = furi_get_tick();
     if(current_tick - last_tick > 20) {
         last_tick = current_tick;
-        printf("[%c]\033[3D", progress[++progress_counter % COUNT_OF(progress)]);
+        //printf("[%c]\033[3D", progress[++progress_counter % COUNT_OF(progress)]);
+        FURI_LOG_I(TAG, "[%c]\033[3D", progress[++progress_counter % COUNT_OF(progress)]);
         fflush(stdout);
     }
 }
 
 void minunit_print_fail(const char* str) {
-    printf(_FURI_LOG_CLR_E "%s\r\n" _FURI_LOG_CLR_RESET, str);
+    //printf(_FURI_LOG_CLR_E "%s\r\n" _FURI_LOG_CLR_RESET, str);
+    FURI_LOG_I(TAG, _FURI_LOG_CLR_E "%s\r\n" _FURI_LOG_CLR_RESET, str);
 }
 
-static void fn_test_cli(Cli* cli, FuriString* args, void* context) {
+uint32_t fn_unit_tests_app(void* p) {
+    UNUSED(p);
+    FuriString* str = furi_string_alloc();
+    fn_run_tests(str, NULL);
+    furi_string_free(str);
+    return 0;
+}
+
+void fn_run_tests(FuriString* args, void* context)
+{
+    UNUSED(args);
     UNUSED(context);
     minunit_run = 0;
     minunit_assert = 0;
@@ -62,15 +75,18 @@ static void fn_test_cli(Cli* cli, FuriString* args, void* context) {
     uint32_t cycle_counter = furi_get_tick();
 
     for(size_t i = 0; i < COUNT_OF(unit_tests); i++) {
+        /*
         if(cli_cmd_interrupt_received(cli)) {
             break;
         }
+         */
 
         if(furi_string_size(args)) {
             if(furi_string_cmp_str(args, unit_tests[i].name) == 0) {
                 unit_tests[i].entry();
             } else {
-                printf("Skipping %s reason: test not found\r\n", unit_tests[i].name);
+                FURI_LOG_I(TAG, "Skipping %s reason: test not found\r\n", unit_tests[i].name);
+                //printf("Skipping %s reason: test not found\r\n", unit_tests[i].name);
             }
         } else {
             unit_tests[i].entry();
@@ -78,26 +94,37 @@ static void fn_test_cli(Cli* cli, FuriString* args, void* context) {
     }
 
     if(minunit_run != 0) {
-        printf("\r\nFailed tests: %u\r\n", minunit_fail);
+        //printf("\r\nFailed tests: %u\r\n", minunit_fail);
+        FURI_LOG_I(TAG, "\r\nFailed tests: %u\r\n", minunit_fail);
 
         // Time report
         cycle_counter = (furi_get_tick() - cycle_counter);
-        printf("Consumed: %lu ms\r\n", cycle_counter);
+        //printf("Consumed: %lu ms\r\n", cycle_counter);
+        FURI_LOG_I(TAG, "Consumed: %lu ms\r\n", cycle_counter);
 
         // Wait for tested services and apps to deallocate memory
         furi_delay_ms(200);
         uint32_t heap_after = memmgr_get_free_heap();
-        printf("Leaked: %ld\r\n", heap_before - heap_after);
+        //printf("Leaked: %ld\r\n", heap_before - heap_after);
+        FURI_LOG_I(TAG, "Leaked: %ld\r\n", heap_before - heap_after);
 
         // Final Report
         if(minunit_fail == 0) {
             notification_message(notification, &sequence_success);
-            printf("Status: PASSED\r\n");
+            //printf("Status: PASSED\r\n");
+            FURI_LOG_I(TAG, "Status: PASSED\r\n");
         } else {
             notification_message(notification, &sequence_error);
-            printf("Status: FAILED\r\n");
+            //printf("Status: FAILED\r\n");
+            FURI_LOG_I(TAG, "Status: FAILED\r\n");
         }
     }
+}
+
+static void fn_test_cli(Cli* cli, FuriString* args, void* context) {
+    UNUSED(cli);
+    UNUSED(args);
+    UNUSED(context);
 }
 
 void fn_register_tests() {

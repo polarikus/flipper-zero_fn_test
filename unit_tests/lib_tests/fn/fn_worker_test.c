@@ -43,15 +43,18 @@ MU_TEST(fn_worker_alloc_test) {
     mu_assert_null(fn_worker->callback);
     mu_assert_not_null(fn_worker->thread);
     mu_assert(fn_worker->mode_index == FNWorkerModeIdle, "mode_index != FNWorkerModeIdle");
-    mu_assert_not_null(fn_worker->uart);
+    mu_assert_null(fn_worker->uart);
     mu_assert_not_null(fn_worker->stream);
-    mu_assert_pointers_eq(fn_worker->uart->rx_cmlt_cb, uart_thread_cb);
 }
 
 MU_TEST(fn_worker_start_and_stop_thread_test) {
-    fn_worker_start_thread(fn_worker);
+    fn_worker_start_thread(fn_worker);//TODO Сделать предохранитель на BUS FAULT
+    mu_assert_not_null(fn_worker);
+    mu_assert_pointers_eq(fn_worker->uart->rx_cmlt_cb, uart_thread_cb);
+    FuriThreadState thread_state = furi_thread_get_state(fn_worker->thread);
+    mu_assert_not_null(fn_worker);
     mu_assert(
-        furi_thread_get_state(fn_worker->thread) == FuriThreadStateStarting,
+        thread_state == FuriThreadStateStarting || thread_state == FuriThreadStateRunning,
         "FN WORKER not started!");
     fn_worker_stop_thread(fn_worker);
     mu_assert(
@@ -77,6 +80,7 @@ MU_TEST(fn_worker_fn_detect_start_test) {
 
     fn_worker_stop_thread(fn_worker);
     free(fn_info);
+    
 }
 
 MU_TEST(fn_worker_fn_life_info_test) {
@@ -106,7 +110,6 @@ MU_TEST_SUITE(fn_worker_suite) {
     MU_RUN_TEST(fn_worker_start_and_stop_thread_test);
     MU_RUN_TEST(fn_worker_fn_detect_start_test);
     MU_RUN_TEST(fn_worker_fn_life_info_test);
-    UNUSED(fn_worker_fn_detect_start_test);
 }
 
 int run_minunit_test_fn_worker() {

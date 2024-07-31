@@ -80,11 +80,11 @@ static void fn_init_uart(uint32_t baudrate, UARTApp* app) {
 
 static void fn_deinit_uart(UARTApp* uart_app)
 {
-
-    furi_hal_serial_deinit(uart_app->serial_handle);
-    furi_hal_serial_control_release(uart_app->serial_handle);
+    if(uart_app->serial_handle){
+        furi_hal_serial_deinit(uart_app->serial_handle);
+        furi_hal_serial_control_release(uart_app->serial_handle);
+    }
     uart_app->serial_handle = NULL;
-
     console_enable();
 }
 
@@ -174,11 +174,20 @@ void fn_uart_stop_thread(UARTApp* app)
     FURI_LOG_D(TAG, "uart thread stopped");
 }
 
+static bool fn_uart_check_for_stop(UARTApp* app) {
+    UNUSED(app);
+    uint32_t flags = furi_thread_flags_get();
+    return (flags & UARTThreadEventStop);
+}
+
 void fn_uart_app_free(UARTApp* app) {
+    UNUSED(fn_uart_check_for_stop);
     furi_check(app, TAG" fn_uart_app_free | app");
-    furi_check(app->thread, TAG"fn_uart_app_free | app->thread");
     fn_deinit_uart(app);
-    furi_thread_free(app->thread);
+    if(app->thread){
+        fn_uart_stop_thread(app);
+        furi_thread_free(app->thread);
+    }
     free(app);
 }
 

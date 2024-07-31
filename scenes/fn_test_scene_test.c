@@ -3,11 +3,14 @@
 //
 #include "../fn_test_app_i.h"
 #include "../lib/fn/fn_helpers.h"
+#include "unit_tests/test_index.h"
 
 void fn_test_scene_test_on_enter(void* context) {
     FNApp* app = context;
 
+
     FuriString* string = furi_string_alloc();
+    fn_run_tests(string, context);
     uint16_t crc = 0xFEDD;
     uint8_t crc2[2];
     uint16t_LE_to_uint8t_bytes(crc, crc2);

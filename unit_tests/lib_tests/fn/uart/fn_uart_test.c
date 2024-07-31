@@ -6,12 +6,14 @@
 #include "fn_commands.h"
 #include "fn_helpers.h"
 
+#define MAX_BUFF_SIZE 40
+
 UARTApp* fn_uart;
 
 bool is_rx_cmplt = false;
 
 size_t rx_len = 0;
-uint8_t rx_buff[40];
+uint8_t rx_buff[MAX_BUFF_SIZE];
 /*
 static int32_t fn_uart_test_app(void *p) {
 
@@ -20,6 +22,7 @@ static int32_t fn_uart_test_app(void *p) {
 */
 static void test_setup(void) {
     fn_uart = fn_uart_app_alloc();
+    rx_buff[0] = 0;
 }
 
 static void test_teardown(void) {
@@ -27,14 +30,16 @@ static void test_teardown(void) {
 }
 
 static void uart_thread_cb_test(uint8_t* buff, size_t len, void* ctx) {
-    UNUSED(buff);
-    UNUSED(len);
     UNUSED(ctx);
     is_rx_cmplt = true;
     rx_len = len;
-    for(size_t i = 0; i < len; ++i) {
-        rx_buff[i] = buff[i];
-    }
+   
+   for(size_t i = 0; i < len; ++i) {
+       if(len < MAX_BUFF_SIZE){
+           rx_buff[i] = buff[i];
+       }
+   }
+
 }
 
 MU_TEST(fn_uart_alloc_test) {

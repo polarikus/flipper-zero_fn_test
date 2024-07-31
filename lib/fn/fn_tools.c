@@ -198,8 +198,8 @@ static bool fn_trx(FNWorker* worker, FNAnswer* answer, FN_CMD cmd, const uint8_t
 FNToolCmdStatus fn_tool_get_fn_info(FNError *fn_error, FNWorker* fn_worker, FNInfo* fnInfo){
     furi_check(fn_worker, TAG" fn_tool_get_fn_info | fn_worker");
     furi_check(fnInfo, TAG" fn_tool_get_fn_info | fnInfo");
-    furi_check(fn_worker->uart, TAG" fn_tool_get_fn_info | fn_worker->uart");
     TRXHelper* tx_helper = trx_helper_alloc(fn_worker);
+    furi_check(fn_worker->uart, TAG" fn_tool_get_fn_info | fn_worker->uart");
 
     bool trx_ok;
 

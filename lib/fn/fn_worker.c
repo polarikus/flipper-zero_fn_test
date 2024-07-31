@@ -49,23 +49,27 @@ FNWorker* fn_worker_alloc() {
     worker->callback = NULL;
     worker->thread = furi_thread_alloc();
     worker->mode_index = FNWorkerModeIdle;
-    worker->uart = fn_uart_app_alloc();
+    worker->uart = NULL;
     worker->stream = furi_stream_buffer_alloc(FN_UART_MAX_PACKAGE_LEN, 1);
     furi_thread_set_name(worker->thread, "FNWorker");
     furi_thread_set_callback(worker->thread, fn_worker_thread);
     furi_thread_set_context(worker->thread, worker);
     furi_thread_set_stack_size(worker->thread, 10240);
-    fn_uart_set_rx_callback(worker->uart, uart_thread_cb, worker);
     return worker;
 }
 
 void fn_worker_free(FNWorker* worker) {
-    if(furi_thread_get_state(worker->uart->thread) != FuriThreadStateStopped)
-    {
-        fn_uart_stop_thread(worker->uart);
+    if(worker->uart && worker->uart->thread){
+        if(furi_thread_get_state(worker->uart->thread) != FuriThreadStateStopped)
+        {
+            fn_uart_stop_thread(worker->uart);
+        }
     }
-    fn_uart_app_free(worker->uart);
+    if(!fn_worker_check_for_stop(worker)){
+        fn_worker_stop_thread(worker);
+    }
     furi_thread_free(worker->thread);
+    
     furi_stream_buffer_free(worker->stream);
     free(worker);
 }
@@ -122,12 +126,18 @@ static int32_t fn_worker_thread(void* thread_context) {
 }
 
 void fn_worker_start_thread(FNWorker * worker) {
+    worker->uart = fn_uart_app_alloc();
+    fn_uart_set_rx_callback(worker->uart, uart_thread_cb, worker);
     furi_thread_start(worker->thread);
 }
 
 void fn_worker_stop_thread(FNWorker * worker) {
     furi_thread_flags_set(furi_thread_get_id(worker->thread), FNEventStopThread);
     furi_thread_join(worker->thread);
+    if (worker->uart)
+    {
+        fn_uart_app_free(worker->uart);
+    }
 }
 
 void fn_worker_fn_detect_start(
